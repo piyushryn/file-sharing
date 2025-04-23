@@ -1,0 +1,65 @@
+version: "3.8"
+
+services:
+  # MongoDB service
+  mongodb:
+    image: mongo:latest
+    container_name: fileshare-mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=fileSharingApp
+    networks:
+      - fileshare-network
+
+  # Backend API service
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: fileshare-server
+    restart: always
+    ports:
+      - "8090:8090"
+      - "9876:9876"
+    depends_on:
+      - mongodb
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - MONGODB_URI=mongodb://mongodb:27017/fileSharingApp
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
+      - RAZORPAY_KEY_ID=${RAZORPAY_KEY_ID}
+      - RAZORPAY_KEY_SECRET=${RAZORPAY_KEY_SECRET}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - JWT_SECRET=${JWT_SECRET}
+    networks:
+      - fileshare-network
+
+  # Frontend client service
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: fileshare-client
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+    networks:
+      - fileshare-network
+
+networks:
+  fileshare-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
