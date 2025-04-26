@@ -6,6 +6,37 @@ const API = axios.create({
   timeout: 30000, // 30 seconds timeout
 });
 
+API.interceptors.request.use(
+  (config) => {
+    // Add authorization token if available
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers["Authorization"] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    // Handle request error
+    console.error("Request error:", error);
+    return Promise.reject(error);
+  }
+);
+API.interceptors.response.use(
+  (response) => {
+    // Handle successful response
+    return response;
+  },
+  (error) => {
+    // Handle response error
+    if (error.response) {
+      // Server responded with a status code outside the range of 2xx
+      console.error("Response error:", error.response.data);
+      console.error("Response status:", error.response.status);
+      console.error("Response headers:", error.response.headers);
+    }
+    return Promise.reject(error);
+  }
+);
 // Define interfaces for API responses and requests
 export interface FileUploadUrlResponse {
   uploadUrl: string;

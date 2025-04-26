@@ -2,6 +2,8 @@ import express, { Request, Response, NextFunction } from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
+import passport from "passport";
+import session from "express-session";
 
 // Load environment variables
 dotenv.config();
@@ -12,6 +14,10 @@ import rawBodyMiddleware from "./middlewares/rawBodyMiddleware";
 // Import routes
 import fileRoutes from "./routes/fileRoutes";
 import paymentRoutes from "./routes/paymentRoutes";
+import authRoutes from "./routes/authRoutes";
+
+// Import Passport config
+import configurePassport from "./config/passport";
 
 // Create Express app
 const app = express();
@@ -25,8 +31,8 @@ interface ErrorWithStack extends Error {
 app.use(
   cors({
     origin: "http://localhost:3000",
-    methods: ["GET", "POST", "PATCH", "DELETE"],
-    // credentials: true,
+    methods: ["GET", "POST", "PATCH", "DELETE", "PUT"],
+    credentials: true,
   })
 );
 
@@ -52,6 +58,28 @@ app.use("/api/payments", paymentRoutes);
 app.get("/", (_req: Request, res: Response) => {
   res.send("File Sharing API is running");
 });
+
+// Session configuration (for Passport)
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "your-session-secret",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
+    },
+  })
+);
+
+// Initialize Passport
+app.use(passport.initialize());
+// app.use(passport.session()); // Uncomment if you want to use sessions
+
+// Configure Passport strategies
+configurePassport();
+
+app.use("/api/auth", authRoutes);
 
 // Error handler middleware
 app.use(
