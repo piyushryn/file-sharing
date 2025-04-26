@@ -4,6 +4,8 @@ import FileUploadPage from "../pages/FileUploadPage";
 import FileDetailsPage from "../pages/FileDetailsPage";
 import PaymentPage from "../pages/PaymentPage";
 import NotFoundPage from "../pages/NotFoundPage";
+import ProtectedRoute from "./ProtectedRoute";
+import ProfilePage from "../pages/ProfilePage";
 
 const AppRoutes = () => {
   return (
@@ -11,7 +13,15 @@ const AppRoutes = () => {
       <Route path="/" element={<HomePage />} />
       <Route path="/upload" element={<FileUploadPage />} />
       <Route path="/file/:fileId" element={<FileDetailsPage />} />
-      <Route path="/payment/:fileId" element={<PaymentPage />} />
+      <Route path="/profile" element={<ProfilePage />} />
+      <Route
+        path="/payment/:fileId"
+        element={
+          <ProtectedRoute>
+            <PaymentPage />
+          </ProtectedRoute>
+        }
+      />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );

@@ -42,6 +42,36 @@ export const authenticateJWT = (
 };
 
 /**
+ * Middleware to just add user to request object
+ * @param req - Express request object
+ * @param res - Express response object
+ * @param next - Express next function
+ */
+
+export const addUserDataToRequestIfSignedIn = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  passport.authenticate(
+    "jwt",
+    { session: false },
+    (err: Error, user: IUser) => {
+      if (err) {
+        return next(err);
+      }
+      if (!user) {
+        next();
+        return;
+      }
+
+      req.user = user;
+      next();
+    }
+  )(req, res, next);
+};
+
+/**
  * Middleware to check if user is an admin
  * @param req - Express request object
  * @param res - Express response object

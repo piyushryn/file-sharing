@@ -1,4 +1,4 @@
-import React, { useState, useEffect, FormEvent } from "react";
+import React, { useState, useEffect, FormEvent, useCallback } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { fileService, paymentService } from "../services/api";
@@ -205,124 +205,124 @@ const PaymentMethodTitle = styled.h3`
 `;
 
 // Stripe payment form component
-const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
-  fileId,
-  selectedTier,
-  onPaymentSuccess,
-  onBack,
-}) => {
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [clientSecret, setClientSecret] = useState<string>("");
-  const [processing, setProcessing] = useState<boolean>(false);
+// const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
+//   fileId,
+//   selectedTier,
+//   onPaymentSuccess,
+//   onBack,
+// }) => {
+//   const [loading, setLoading] = useState<boolean>(false);
+//   const [error, setError] = useState<string | null>(null);
+//   const [clientSecret, setClientSecret] = useState<string>("");
+//   const [processing, setProcessing] = useState<boolean>(false);
 
-  const stripe = useStripe();
-  const elements = useElements();
-  const navigate = useNavigate();
+//   const stripe = useStripe();
+//   const elements = useElements();
+//   const navigate = useNavigate();
 
-  useEffect(() => {
-    const initializePayment = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+//   useEffect(() => {
+//     const initializePayment = async () => {
+//       try {
+//         setLoading(true);
+//         setError(null);
 
-        const response = await paymentService.initStripePayment(
-          fileId,
-          selectedTier._id,
-          "USD"
-        );
-        setClientSecret(response.data.clientSecret);
-      } catch (err) {
-        console.error("Error initializing Stripe payment:", err);
-        setError("Failed to initialize payment. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
+//         const response = await paymentService.initStripePayment(
+//           fileId,
+//           selectedTier._id,
+//           "USD"
+//         );
+//         setClientSecret(response.data.clientSecret);
+//       } catch (err) {
+//         console.error("Error initializing Stripe payment:", err);
+//         setError("Failed to initialize payment. Please try again.");
+//       } finally {
+//         setLoading(false);
+//       }
+//     };
 
-    if (fileId && selectedTier) {
-      initializePayment();
-    }
-  }, [fileId, selectedTier]);
+//     if (fileId && selectedTier) {
+//       initializePayment();
+//     }
+//   }, [fileId, selectedTier]);
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+//   const handleSubmit = async (e: FormEvent) => {
+//     e.preventDefault();
 
-    if (!stripe || !elements) {
-      return;
-    }
+//     if (!stripe || !elements) {
+//       return;
+//     }
 
-    setProcessing(true);
-    setError(null);
+//     setProcessing(true);
+//     setError(null);
 
-    const result = await stripe.confirmPayment({
-      elements,
-      confirmParams: {
-        return_url: `${window.location.origin}/file/${fileId}`,
-      },
-      redirect: "if_required",
-    });
+//     const result = await stripe.confirmPayment({
+//       elements,
+//       confirmParams: {
+//         return_url: `${window.location.origin}/file/${fileId}`,
+//       },
+//       redirect: "if_required",
+//     });
 
-    if (result.error) {
-      setError(result.error.message || "Payment failed");
-      setProcessing(false);
-    } else if (
-      result.paymentIntent &&
-      result.paymentIntent.status === "succeeded"
-    ) {
-      // Payment succeeded, update file attributes
-      try {
-        await fileService.updateFile(fileId, {
-          maxSize: selectedTier.fileSizeLimit,
-          validityHours: selectedTier.validityInHours,
-          isPremium: true,
-        });
+//     if (result.error) {
+//       setError(result.error.message || "Payment failed");
+//       setProcessing(false);
+//     } else if (
+//       result.paymentIntent &&
+//       result.paymentIntent.status === "succeeded"
+//     ) {
+//       // Payment succeeded, update file attributes
+//       try {
+//         await fileService.updateFile(fileId, {
+//           maxSize: selectedTier.fileSizeLimit,
+//           validityHours: selectedTier.validityInHours,
+//           isPremium: true,
+//         });
 
-        onPaymentSuccess();
-      } catch (err) {
-        console.error("Error updating file after payment:", err);
-        setError(
-          "Payment succeeded but we had trouble updating your file. Please contact support."
-        );
-        setProcessing(false);
-      }
-    }
-  };
+//         onPaymentSuccess();
+//       } catch (err) {
+//         console.error("Error updating file after payment:", err);
+//         setError(
+//           "Payment succeeded but we had trouble updating your file. Please contact support."
+//         );
+//         setProcessing(false);
+//       }
+//     }
+//   };
 
-  if (loading) {
-    return (
-      <LoadingContainer>
-        <p>Initializing payment...</p>
-      </LoadingContainer>
-    );
-  }
+//   if (loading) {
+//     return (
+//       <LoadingContainer>
+//         <p>Initializing payment...</p>
+//       </LoadingContainer>
+//     );
+//   }
 
-  return (
-    <div>
-      <PaymentMethodTitle>Pay with Stripe</PaymentMethodTitle>
+//   return (
+//     <div>
+//       <PaymentMethodTitle>Pay with Stripe</PaymentMethodTitle>
 
-      {error && <ErrorContainer>{error}</ErrorContainer>}
+//       {error && <ErrorContainer>{error}</ErrorContainer>}
 
-      <form onSubmit={handleSubmit}>
-        {clientSecret && <PaymentElement />}
+//       <form onSubmit={handleSubmit}>
+//         {clientSecret && <PaymentElement />}
 
-        <PaymentButtons>
-          <StripeButton
-            type="submit"
-            disabled={processing || !stripe || !elements || !clientSecret}
-          >
-            {processing
-              ? "Processing..."
-              : `Pay $${Math.ceil(selectedTier.price / 75)} USD`}
-          </StripeButton>
-          <BackButton type="button" onClick={onBack} disabled={processing}>
-            Back
-          </BackButton>
-        </PaymentButtons>
-      </form>
-    </div>
-  );
-};
+//         <PaymentButtons>
+//           <StripeButton
+//             type="submit"
+//             disabled={processing || !stripe || !elements || !clientSecret}
+//           >
+//             {processing
+//               ? "Processing..."
+//               : `Pay $${Math.ceil(selectedTier.price / 75)} USD`}
+//           </StripeButton>
+//           <BackButton type="button" onClick={onBack} disabled={processing}>
+//             Back
+//           </BackButton>
+//         </PaymentButtons>
+//       </form>
+//     </div>
+//   );
+// };
 
 // Main payment page component
 const PaymentPage: React.FC = () => {
@@ -343,12 +343,28 @@ const PaymentPage: React.FC = () => {
     process.env.REACT_APP_STRIPE_PUBLIC_KEY || ""
   );
   const params = new URLSearchParams(location.search);
+  const tier = params.get("tier");
+  const shouldOpen = params.get("shouldOpen");
+
+  const removeShouldOpenParam = useCallback(() => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("shouldOpen");
+    window.history.replaceState({}, document.title, url.toString());
+  }, []);
+
   // Extract tier ID from URL query parameters
   useEffect(() => {
-    const tier = params.get("tier");
+    if (shouldOpen === "true") {
+      startWithRazorpay();
+    }
     setSelectedTierId(tier);
-    // Don't return anything here
-  }, [params]);
+  }, [tier, shouldOpen]);
+
+  //default start with razorpay
+  const startWithRazorpay = async () => {
+    removeShouldOpenParam();
+    await handleRazorpayPayment();
+  };
 
   const fetchData = async () => {
     try {
@@ -393,6 +409,10 @@ const PaymentPage: React.FC = () => {
   useEffect(() => {
     fetchData();
   }, [fileId, selectedTierId]);
+
+  useEffect(() => {
+    console.error("error:", error);
+  }, [error]);
 
   // Handle Razorpay payment
   const handleRazorpayPayment = async () => {
@@ -530,9 +550,9 @@ const PaymentPage: React.FC = () => {
                       <RazorpayButton onClick={() => handleRazorpayPayment()}>
                         Pay with Razorpay (INR)
                       </RazorpayButton>
-                      <StripeButton onClick={() => setPaymentMethod("stripe")}>
+                      {/* <StripeButton onClick={() => setPaymentMethod("stripe")}>
                         Pay with Stripe (USD)
-                      </StripeButton>
+                      </StripeButton> */}
                     </PaymentButtons>
                   </PaymentMethodContainer>
                 )}
@@ -542,12 +562,12 @@ const PaymentPage: React.FC = () => {
                     stripe={stripePromise}
                     options={{ clientSecret: undefined }}
                   >
-                    <StripePaymentForm
+                    {/* <StripePaymentForm
                       fileId={fileId || ""}
                       selectedTier={selectedTier}
                       onPaymentSuccess={handlePaymentSuccess}
                       onBack={() => setPaymentMethod(null)}
-                    />
+                    /> */}
                   </Elements>
                 )}
               </div>

@@ -93,4 +93,68 @@ const deleteObject = async (
   }
 };
 
-export { s3, generateUploadUrl, generateDownloadUrl, deleteObject };
+/**
+ * Clear all objects from an S3 bucket
+ * @returns {Promise<{deleted: number, errors: number}>} Summary of deletion operation
+ */
+const clearBucket = async (): Promise<{ deleted: number; errors: number }> => {
+  const bucketName = process.env.S3_BUCKET_NAME || "";
+  let continuationToken: string | undefined = undefined;
+  let totalDeleted = 0;
+  let totalErrors = 0;
+
+  try {
+    // Continue listing and deleting objects until bucket is empty
+    do {
+      // List objects in the bucket (1000 at a time - S3 limit)
+      const listParams: AWS.S3.ListObjectsV2Request = {
+        Bucket: bucketName,
+        ContinuationToken: continuationToken,
+      };
+
+      const listedObjects = await s3.listObjectsV2(listParams).promise();
+
+      if (!listedObjects.Contents || listedObjects.Contents.length === 0) {
+        console.log("No objects found in bucket");
+        break;
+      }
+
+      // Create delete params with objects to delete
+      const deleteParams: AWS.S3.DeleteObjectsRequest = {
+        Bucket: bucketName,
+        Delete: {
+          Objects: listedObjects.Contents.map(({ Key }) => ({
+            Key: Key || "",
+          })),
+          Quiet: false,
+        },
+      };
+
+      // Delete the batch of objects
+      const deleteResult = await s3.deleteObjects(deleteParams).promise();
+
+      // Update counts
+      if (deleteResult.Deleted) totalDeleted += deleteResult.Deleted.length;
+      if (deleteResult.Errors) totalErrors += deleteResult.Errors.length;
+
+      // Check if there are more objects to delete
+      continuationToken = listedObjects.NextContinuationToken;
+    } while (continuationToken);
+
+    console.log(
+      `Successfully cleared S3 bucket. Deleted: ${totalDeleted}, Errors: ${totalErrors}`
+    );
+    return { deleted: totalDeleted, errors: totalErrors };
+  } catch (error) {
+    console.error("Error clearing S3 bucket:", error);
+    throw error;
+  }
+};
+
+export {
+  s3,
+  generateUploadUrl,
+  generateDownloadUrl,
+  deleteObject,
+  clearBucket,
+};

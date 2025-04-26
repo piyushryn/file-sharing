@@ -1,7 +1,7 @@
 import axios, { AxiosResponse, AxiosProgressEvent } from "axios";
 
 // Create axios instance with base URL
-const API = axios.create({
+export const API = axios.create({
   baseURL: process.env.REACT_APP_API_URL || "http://localhost:5000/api",
   timeout: 30000, // 30 seconds timeout
 });

@@ -1,6 +1,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import styled from "styled-components";
+import { useAuth } from "../contexts/AuthContext";
+import { useModal } from "../contexts/ModalContext";
 
 const HeaderContainer = styled.header`
   background-color: #2c3e50;
@@ -33,6 +35,7 @@ const Logo = styled(Link)`
 const NavLinks = styled.div`
   display: flex;
   gap: 1.5rem;
+  align-items: center;
 `;
 
 const NavLink = styled(Link)`
@@ -48,7 +51,54 @@ const NavLink = styled(Link)`
   }
 `;
 
+const AuthButton = styled.button`
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #2980b9;
+  }
+`;
+
+const UserMenu = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+`;
+
+const UserButton = styled.button`
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+`;
+
 const Header = () => {
+  const { isAuthenticated, user, logout } = useAuth();
+  const { openModal } = useModal();
+
+  const handleLogout = () => {
+    logout();
+  };
+
   return (
     <HeaderContainer>
       <Nav>
@@ -76,6 +126,21 @@ const Header = () => {
         <NavLinks>
           <NavLink to="/">Home</NavLink>
           <NavLink to="/upload">Upload</NavLink>
+
+          {isAuthenticated ? (
+            <UserMenu>
+              <NavLink to={"#"} onClick={handleLogout}>
+                Logout
+              </NavLink>
+            </UserMenu>
+          ) : (
+            <>
+              <AuthButton onClick={() => openModal("login")}>Login</AuthButton>
+              {/* <AuthButton onClick={() => openModal("register")}>
+                Register
+              </AuthButton> */}
+            </>
+          )}
         </NavLinks>
       </Nav>
     </HeaderContainer>

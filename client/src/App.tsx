@@ -8,6 +8,11 @@ import Header from "./components/Header";
 import Footer from "./components/Footer";
 import AppRoutes from "./routes/AppRoutes";
 import UpdateTitle from "./utils/Updatetitle";
+import AuthModal from "./components/Modal/AuthModal";
+
+// Contexts
+import { AuthProvider } from "./contexts/AuthContext";
+import { ModalProvider } from "./contexts/ModalContext";
 
 const AppContainer = styled.div`
   display: flex;
@@ -17,7 +22,7 @@ const AppContainer = styled.div`
 
 const MainContent = styled.main`
   flex: 1;
-  padding: 20px;
+  padding: 20px 0px;
   max-width: 1200px;
   margin: 0 auto;
   width: 100%;
@@ -36,18 +41,22 @@ const TitleUpdater = () => {
 
 function App() {
   return (
-    <Router>
-      <AppContainer>
-        <TitleUpdater />
-        <Header />
-        <MainContent>
-          <AppRoutes />
-        </MainContent>
-        <Footer />
-      </AppContainer>
-    </Router>
+    <AuthProvider>
+      <ModalProvider>
+        <Router>
+          <AppContainer>
+            <TitleUpdater />
+            <Header />
+            <MainContent>
+              <AppRoutes />
+            </MainContent>
+            <Footer />
+            <AuthModal />
+          </AppContainer>
+        </Router>
+      </ModalProvider>
+    </AuthProvider>
   );
 }
-// ProtectedRoute Component
 
 export default App;

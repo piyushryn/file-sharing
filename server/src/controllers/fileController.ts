@@ -229,6 +229,7 @@ const confirmUpload = async (
 
     // Update file record with download URL and email if provided
     file.downloadUrl = downloadUrl;
+    file.userId = req.user && req.user.id; // Associate file with user if authenticated
     if (email) {
       file.email = email;
       console.log(
@@ -451,4 +452,70 @@ const updateFile = async (
   }
 };
 
-export { getUploadUrl, confirmUpload, getFileById, updateFile };
+/**
+ * Get file details by userID
+ * @route GET /api/files/:userId
+ */
+const getFilesByUserId = async (
+  req: Request<{}, {}, UpdateFileRequestBody>,
+  res: Response
+): Promise<void> => {
+  const requestId = generateRequestId();
+  console.log(`[${requestId}] [updateFile] Request received:`, {
+    params: req.params,
+    body: req.body,
+    ip: req.ip,
+  });
+  if (!req.user) {
+    console.log(`[${requestId}] [updateFile] User not authenticated`);
+    res.status(403).json({ message: "User not authenticated" });
+    return;
+  }
+
+  const { id: userId } = req.user;
+
+  try {
+    const files = await FileModel.find({ userId });
+
+    if (!files || files.length === 0) {
+      console.log(
+        `[${requestId}] [updateFile] No files found for userId:`,
+        userId
+      );
+      res.status(404).json({ message: "No files found for this user" });
+      return;
+    }
+
+    console.log(
+      `[${requestId}] [updateFile] Found ${files.length} files for userId:`,
+      userId
+    );
+
+    const response = files.map((file) => ({
+      id: file._id,
+      name: file.originalName,
+      fileSize: file.size,
+      expiresAt: file.expiresAt,
+      isPremium: file.isPremium,
+      uploadedAt: file.uploadedAt,
+      size: file.size,
+    }));
+
+    res.status(200).json(response);
+    console.log(`[${requestId}] [updateFile] Success response:`, response);
+  } catch (error) {
+    console.error(
+      `[${requestId}] [updateFile] Error getting files by userId:`,
+      error
+    );
+    res.status(500).json({ message: "Error getting files by userId" });
+  }
+};
+
+export {
+  getUploadUrl,
+  confirmUpload,
+  getFileById,
+  updateFile,
+  getFilesByUserId,
+};

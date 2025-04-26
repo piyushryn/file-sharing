@@ -15,6 +15,7 @@ export interface IFile extends Document {
   isPremium: boolean;
   email?: string | null;
   paymentId?: mongoose.Types.ObjectId | null;
+  userId?: mongoose.Types.ObjectId | null;
 }
 
 const fileSchema = new Schema<IFile>({
@@ -22,6 +23,7 @@ const fileSchema = new Schema<IFile>({
     type: String,
     required: true,
   },
+
   originalName: {
     type: String,
     required: true,
@@ -75,6 +77,14 @@ const fileSchema = new Schema<IFile>({
     type: Schema.Types.ObjectId,
     ref: "Payment",
     default: null,
+  },
+  userId: {
+    type: Schema.Types.ObjectId,
+    ref: "User",
+    // required only if ispremium is true
+    required: function () {
+      return this.isPremium;
+    },
   },
 });
 

@@ -7,11 +7,15 @@ import {
   handleStripeWebhook,
   checkPaymentStatus,
 } from "../controllers/paymentController";
+import { authenticateJWT } from "../middlewares/auth/authMiddleware";
 
 const router = express.Router();
 
 // Get pricing tiers
 router.get("/pricing-tiers", getPricingTiers);
+
+// Middleware to authenticate JWT token
+router.use(authenticateJWT);
 
 // Razorpay payment routes
 router.post("/razorpay/init", initRazorpayPayment);

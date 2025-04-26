@@ -15,6 +15,7 @@ import rawBodyMiddleware from "./middlewares/rawBodyMiddleware";
 import fileRoutes from "./routes/fileRoutes";
 import paymentRoutes from "./routes/paymentRoutes";
 import authRoutes from "./routes/authRoutes";
+import adminRoutes from "./routes/adminRoutes";
 
 // Import Passport config
 import configurePassport from "./config/passport";
@@ -78,6 +79,7 @@ app.use(passport.initialize());
 
 // Configure Passport strategies
 configurePassport();
+app.use("/api/admin", adminRoutes);
 
 app.use("/api/auth", authRoutes);
 

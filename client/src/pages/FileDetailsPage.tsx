@@ -422,7 +422,9 @@ const FileDetailsPage: React.FC = () => {
                   <TierFeature>
                     {tier.validityInHours} Hours Validity
                   </TierFeature>
-                  <TierButton to={`/payment/${fileId}?tier=${tier._id}`}>
+                  <TierButton
+                    to={`/payment/${fileId}?tier=${tier._id}&shouldOpen=true`}
+                  >
                     Select Plan
                   </TierButton>
                 </PricingTier>
