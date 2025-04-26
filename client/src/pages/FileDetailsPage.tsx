@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import styled from "styled-components";
-import { fileService, paymentService } from "../services/api";
+import { FileDetails, fileService, paymentService } from "../services/api";
+import { PricingTier as PTier } from "../types";
 
+interface RouteParams {
+  fileId: string;
+}
+
+// Styled components
 const Container = styled.div`
   max-width: 800px;
   margin: 0 auto;
@@ -81,7 +87,11 @@ const CopyButton = styled.button`
   }
 `;
 
-const ExpiryContainer = styled.div`
+interface ExpiryContainerProps {
+  expiringSoon: boolean;
+}
+
+const ExpiryContainer = styled.div<ExpiryContainerProps>`
   margin-top: 2rem;
   padding: 1rem;
   background-color: ${(props) => (props.expiringSoon ? "#fff3cd" : "#e8f4fd")};
@@ -91,7 +101,11 @@ const ExpiryContainer = styled.div`
   justify-content: space-between;
 `;
 
-const ExpiryText = styled.div`
+interface ExpiryTextProps {
+  expiringSoon: boolean;
+}
+
+const ExpiryText = styled.div<ExpiryTextProps>`
   color: ${(props) => (props.expiringSoon ? "#856404" : "#0c5460")};
   flex: 1;
 `;
@@ -210,7 +224,7 @@ const CopiedNotification = styled.div`
 `;
 
 // Helper function to format file size
-const formatFileSize = (bytes) => {
+const formatFileSize = (bytes: number): string => {
   if (bytes === 0) return "0 Bytes";
 
   const k = 1024;
@@ -221,10 +235,10 @@ const formatFileSize = (bytes) => {
 };
 
 // Helper function to format remaining time
-const formatRemainingTime = (expiryDate) => {
+const formatRemainingTime = (expiryDate: string): string => {
   const now = new Date();
   const expiry = new Date(expiryDate);
-  const diffMs = expiry - now;
+  const diffMs = expiry.getTime() - now.getTime();
 
   if (diffMs <= 0) {
     return "Expired";
@@ -241,27 +255,28 @@ const formatRemainingTime = (expiryDate) => {
   return `${diffHours} hr ${diffMinutes} min`;
 };
 
-const FileDetailsPage = () => {
-  const { fileId } = useParams();
-  const [fileDetails, setFileDetails] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [pricingTiers, setPricingTiers] = useState([]);
-  const [copied, setCopied] = useState(false);
-  const [countdown, setCountdown] = useState("");
-  const [isExpiringSoon, setIsExpiringSoon] = useState(false);
+const FileDetailsPage: React.FC = () => {
+  // @ts-ignore need to ignore this for now
+  const { fileId } = useParams<RouteParams>();
+  const [fileDetails, setFileDetails] = useState<FileDetails | undefined>();
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
+  const [pricingTiers, setPricingTiers] = useState<PTier[]>([]);
+  const [copied, setCopied] = useState<boolean>(false);
+  const [countdown, setCountdown] = useState<string>("");
+  const [isExpiringSoon, setIsExpiringSoon] = useState<boolean>(false);
 
   // Fetch file details
   useEffect(() => {
-    const fetchFileDetails = async () => {
+    const fetchFileDetails = async (): Promise<void> => {
       try {
-        const response = await fileService.getFileById(fileId);
+        const response = await fileService.getFileById(fileId!);
         setFileDetails(response.data);
 
         // Check if the file is expiring soon (less than 1 hour)
         const expiryDate = new Date(response.data.expiresAt);
         const now = new Date();
-        const diffMs = expiryDate - now;
+        const diffMs = expiryDate.getTime() - now.getTime();
         const diffHours = diffMs / (1000 * 60 * 60);
 
         setIsExpiringSoon(diffHours < 1);
@@ -273,10 +288,10 @@ const FileDetailsPage = () => {
       }
     };
 
-    const fetchPricingTiers = async () => {
+    const fetchPricingTiers = async (): Promise<void> => {
       try {
         const response = await paymentService.getPricingTiers();
-        setPricingTiers(response.data.filter((tier) => tier.price > 0)); // Filter out free tier
+        setPricingTiers(response.data.filter((tier: PTier) => tier.price > 0)); // Filter out free tier
       } catch (err) {
         console.error("Error fetching pricing tiers:", err);
       }
@@ -290,7 +305,7 @@ const FileDetailsPage = () => {
   useEffect(() => {
     if (!fileDetails) return;
 
-    const updateCountdown = () => {
+    const updateCountdown = (): void => {
       const remaining = formatRemainingTime(fileDetails.expiresAt);
       setCountdown(remaining);
     };
@@ -298,10 +313,10 @@ const FileDetailsPage = () => {
     updateCountdown();
     const intervalId = setInterval(updateCountdown, 60000); // Update every minute
 
-    return () => clearInterval(intervalId);
+    return () => intervalId && clearInterval(intervalId);
   }, [fileDetails]);
 
-  const handleCopyLink = () => {
+  const handleCopyLink = (): void => {
     const url = window.location.href;
     navigator.clipboard.writeText(url);
     setCopied(true);
@@ -338,12 +353,12 @@ const FileDetailsPage = () => {
   return (
     <Container>
       <FileCard>
-        <Title>{fileDetails.fileName}</Title>
+        <Title>{fileDetails!.fileName}</Title>
 
         <FileInfo>
           <InfoRow>
             <Label>File Size:</Label>
-            <Value>{formatFileSize(fileDetails.fileSize)}</Value>
+            <Value>{formatFileSize(fileDetails!.fileSize)}</Value>
           </InfoRow>
           <InfoRow>
             <Label>Expiry Time:</Label>
@@ -351,9 +366,9 @@ const FileDetailsPage = () => {
           </InfoRow>
           <InfoRow>
             <Label>Upload Date:</Label>
-            <Value>{new Date(fileDetails.uploadedAt).toLocaleString()}</Value>
+            <Value>{new Date(fileDetails!.uploadedAt).toLocaleString()}</Value>
           </InfoRow>
-          {fileDetails.isPremium && (
+          {fileDetails!.isPremium && (
             <InfoRow>
               <Label>Status:</Label>
               <Value>Premium</Value>
@@ -362,8 +377,8 @@ const FileDetailsPage = () => {
         </FileInfo>
 
         <DownloadButton
-          href={fileDetails.downloadUrl}
-          download={fileDetails.fileName}
+          href={fileDetails!.downloadUrl}
+          download={fileDetails!.fileName}
         >
           Download File
         </DownloadButton>
@@ -383,12 +398,12 @@ const FileDetailsPage = () => {
             </ExpiryDescription>
           </ExpiryText>
 
-          {!fileDetails.isPremium && (
+          {!fileDetails!.isPremium && (
             <UpgradeLink to={`/payment/${fileId}`}>Upgrade Now</UpgradeLink>
           )}
         </ExpiryContainer>
 
-        {!fileDetails.isPremium && pricingTiers.length > 0 && (
+        {!fileDetails!.isPremium && pricingTiers.length > 0 && (
           <PricingTierContainer>
             <PricingTierTitle>Upgrade Options</PricingTierTitle>
             <p>

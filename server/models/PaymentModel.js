@@ -21,7 +21,7 @@ const paymentSchema = new mongoose.Schema({
   },
   gatewayPaymentId: {
     type: String,
-    required: true,
+    // required: true,
   },
   gatewayOrderId: {
     type: String,

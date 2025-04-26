@@ -9,7 +9,7 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
-import { PricingTier, RazorpayResponse } from "../types";
+import { PricingTier as PTier, RazorpayResponse } from "../types";
 
 // Define interfaces for data types
 interface FileDetails {
@@ -26,7 +26,7 @@ interface FileDetails {
 
 interface StripePaymentFormProps {
   fileId: string;
-  selectedTier: PricingTier;
+  selectedTier: PTier;
   onPaymentSuccess: () => void;
   onBack: () => void;
 }
@@ -330,8 +330,8 @@ const PaymentPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [fileDetails, setFileDetails] = useState<FileDetails | null>(null);
-  const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
-  const [selectedTier, setSelectedTier] = useState<PricingTier | null>(null);
+  const [pricingTiers, setPricingTiers] = useState<PTier[]>([]);
+  const [selectedTier, setSelectedTier] = useState<PTier | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<string | null>(null); // null, 'razorpay', or 'stripe'
@@ -342,58 +342,55 @@ const PaymentPage: React.FC = () => {
   const stripePromise = loadStripe(
     process.env.REACT_APP_STRIPE_PUBLIC_KEY || ""
   );
-
+  const params = new URLSearchParams(location.search);
   // Extract tier ID from URL query parameters
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
     const tier = params.get("tier");
     setSelectedTierId(tier);
-  }, [location]);
+    // Don't return anything here
+  }, [params]);
 
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (!fileId) {
+        setError("File ID is missing");
+        setLoading(false);
+        return;
+      }
+
+      // Fetch file details
+      const fileResponse = await fileService.getFileById(fileId);
+      setFileDetails(fileResponse.data);
+
+      // Fetch pricing tiers
+      const pricingResponse = await paymentService.getPricingTiers();
+      const activeTiers = pricingResponse.data.filter((tier) => tier.price > 0);
+      setPricingTiers(activeTiers);
+
+      // Pre-select tier from URL if provided
+      if (selectedTierId) {
+        const preselectedTier = activeTiers.find(
+          (tier) => tier._id === selectedTierId
+        );
+        if (preselectedTier) {
+          setSelectedTier(preselectedTier);
+        }
+      } else if (activeTiers.length > 0) {
+        // Default to first tier
+        setSelectedTier(activeTiers[0]);
+      }
+    } catch (err) {
+      console.error("Error fetching data:", err);
+      setError("Failed to load payment information. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
   // Fetch file details and pricing tiers
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        if (!fileId) {
-          setError("File ID is missing");
-          setLoading(false);
-          return;
-        }
-
-        // Fetch file details
-        const fileResponse = await fileService.getFileById(fileId);
-        setFileDetails(fileResponse.data);
-
-        // Fetch pricing tiers
-        const pricingResponse = await paymentService.getPricingTiers();
-        const activeTiers = pricingResponse.data.filter(
-          (tier) => tier.price > 0
-        );
-        setPricingTiers(activeTiers);
-
-        // Pre-select tier from URL if provided
-        if (selectedTierId) {
-          const preselectedTier = activeTiers.find(
-            (tier) => tier._id === selectedTierId
-          );
-          if (preselectedTier) {
-            setSelectedTier(preselectedTier);
-          }
-        } else if (activeTiers.length > 0) {
-          // Default to first tier
-          setSelectedTier(activeTiers[0]);
-        }
-      } catch (err) {
-        console.error("Error fetching data:", err);
-        setError("Failed to load payment information. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchData();
   }, [fileId, selectedTierId]);
 
@@ -421,6 +418,7 @@ const PaymentPage: React.FC = () => {
         description: `Upgrade to ${selectedTier.name}`,
         order_id: response.data.orderId,
         handler: async function (razorpayResponse: RazorpayResponse) {
+          console.log({ razorpayResponse });
           try {
             // Verify payment with backend
             const verifyResponse = await paymentService.verifyRazorpayPayment(

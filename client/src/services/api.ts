@@ -7,7 +7,7 @@ const API = axios.create({
 });
 
 // Define interfaces for API responses and requests
-interface FileUploadUrlResponse {
+export interface FileUploadUrlResponse {
   uploadUrl: string;
   fileId: string;
   expiresAt: string;
@@ -19,7 +19,7 @@ interface FileConfirmResponse {
   expiresAt: string;
 }
 
-interface FileDetails {
+export interface FileDetails {
   fileId: string;
   fileName: string;
   fileSize: number;
@@ -37,7 +37,7 @@ interface FileUpdateData {
   paymentId?: string;
 }
 
-interface PricingTier {
+export interface PricingTier {
   _id: string;
   name: string;
   description: string;

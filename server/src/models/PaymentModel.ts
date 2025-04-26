@@ -36,7 +36,7 @@ const paymentSchema = new Schema<IPayment>({
   },
   gatewayPaymentId: {
     type: String,
-    required: true,
+    // required: true,
   },
   gatewayOrderId: {
     type: String,

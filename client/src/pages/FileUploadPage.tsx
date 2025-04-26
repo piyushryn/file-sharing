@@ -3,6 +3,19 @@ import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { fileService, uploadFileToS3 } from "../services/api";
 
+// Define types for styled components with props
+interface UploadAreaProps {
+  isDragging: boolean;
+}
+
+interface ProgressFillProps {
+  progress: number;
+}
+
+interface ButtonProps {
+  disabled?: boolean;
+}
+
 const Container = styled.div`
   max-width: 800px;
   margin: 0 auto;
@@ -24,7 +37,7 @@ const UploadCard = styled.div`
   margin-bottom: 2rem;
 `;
 
-const UploadArea = styled.div`
+const UploadArea = styled.div<UploadAreaProps>`
   border: 2px dashed #bdc3c7;
   border-radius: 8px;
   padding: 3rem 2rem;
@@ -72,7 +85,7 @@ const ProgressBar = styled.div`
   margin-bottom: 0.5rem;
 `;
 
-const ProgressFill = styled.div`
+const ProgressFill = styled.div<ProgressFillProps>`
   height: 100%;
   background-color: #3498db;
   width: ${(props) => props.progress}%;
@@ -122,7 +135,7 @@ const ErrorMessage = styled.div`
   margin-bottom: 1rem;
 `;
 
-const Button = styled.button`
+const Button = styled.button<ButtonProps>`
   background-color: ${(props) => (props.disabled ? "#95a5a6" : "#3498db")};
   color: white;
   border: none;
@@ -163,7 +176,7 @@ const Label = styled.label`
 `;
 
 // Helper function to format file size
-const formatFileSize = (bytes) => {
+const formatFileSize = (bytes: number): string => {
   if (bytes === 0) return "0 Bytes";
 
   const k = 1024;
@@ -173,24 +186,39 @@ const formatFileSize = (bytes) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 };
 
-const FileUploadPage = () => {
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isUploading, setIsUploading] = useState(false);
-  const [error, setError] = useState("");
-  const [email, setEmail] = useState("");
-  const [uploadStage, setUploadStage] = useState("select"); // select, uploading, confirming, complete
+type UploadStage = "select" | "uploading" | "confirming" | "complete";
 
-  const fileInputRef = useRef(null);
+interface ApiError extends Error {
+  response?: {
+    data: {
+      requiresUpgrade?: boolean;
+      message?: string;
+    };
+  };
+}
+
+const FileUploadPage: React.FC = () => {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
+  const [uploadStage, setUploadStage] = useState<UploadStage>("select");
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
-  const handleFileSelect = (event) => {
-    const file = event.target.files[0];
-    handleSelectedFile(file);
+  const handleFileSelect = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ): void => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      handleSelectedFile(files[0]);
+    }
   };
 
-  const handleSelectedFile = (file) => {
+  const handleSelectedFile = (file: File): void => {
     if (!file) return;
 
     // Check file size (maximum 2GB for free tier)
@@ -206,16 +234,16 @@ const FileUploadPage = () => {
     setError("");
   };
 
-  const handleDragOver = (event) => {
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>): void => {
     event.preventDefault();
     setIsDragging(true);
   };
 
-  const handleDragLeave = () => {
+  const handleDragLeave = (): void => {
     setIsDragging(false);
   };
 
-  const handleDrop = (event) => {
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>): void => {
     event.preventDefault();
     setIsDragging(false);
 
@@ -224,11 +252,13 @@ const FileUploadPage = () => {
     }
   };
 
-  const handleClickUpload = () => {
-    fileInputRef.current.click();
+  const handleClickUpload = (): void => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
   };
 
-  const handleUpload = async () => {
+  const handleUpload = async (): Promise<void> => {
     if (!selectedFile || isUploading) return;
 
     try {
@@ -246,16 +276,13 @@ const FileUploadPage = () => {
       const { uploadUrl, fileId } = response.data;
 
       // Step 2: Upload file directly to S3 with progress tracking
-      await uploadFileToS3(selectedFile, uploadUrl, (progress) => {
+      await uploadFileToS3(selectedFile, uploadUrl, (progress: number) => {
         setUploadProgress(progress);
       });
 
       // Step 3: Confirm upload is complete and get download URL
       setUploadStage("confirming");
-      const confirmResponse = await fileService.confirmUpload(
-        fileId,
-        email || null
-      );
+      await fileService.confirmUpload(fileId, email || null);
 
       // Step 4: Navigate to file details page
       setUploadStage("complete");
@@ -263,7 +290,8 @@ const FileUploadPage = () => {
     } catch (error) {
       console.error("Error uploading file:", error);
       setIsUploading(false);
-      if (error.response && error.response.data.requiresUpgrade) {
+      const apiError = error as ApiError;
+      if (apiError.response && apiError.response.data.requiresUpgrade) {
         setError(
           `This file exceeds the free size limit. Please upload a smaller file or complete the upload and upgrade.`
         );

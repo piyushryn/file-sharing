@@ -1,3 +1,10 @@
-# https://www.robotstxt.org/robotstxt.html
+# Allow all web crawlers to index the site
 User-agent: *
-Disallow:
+Allow: /
+
+# Point to the sitemap
+Sitemap: https://fileshare-app.com/sitemap.xml
+
+# Disallow crawling of file and payment detail pages as they're dynamic
+Disallow: /file/
+Disallow: /payment/

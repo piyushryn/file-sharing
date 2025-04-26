@@ -1,5 +1,10 @@
-import React from "react";
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import React, { useEffect } from "react";
+import {
+  BrowserRouter as Router,
+  Route,
+  Routes,
+  useLocation,
+} from "react-router-dom";
 import styled from "styled-components";
 import "./App.css";
 
@@ -26,10 +31,40 @@ const MainContent = styled.main`
   width: 100%;
 `;
 
-const App = () => {
+// Title update component
+const TitleUpdater = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    let title = "FileShare - Secure File Sharing Made Easy";
+    const path = location.pathname;
+
+    // Set specific titles based on route
+    if (path === "/") {
+      title =
+        "FileShare - Secure File Sharing Made Easy | Share Files Up to 2GB Free";
+    } else if (path === "/upload") {
+      title = "Upload & Share Files Securely | FileShare";
+    } else if (path.includes("/file/")) {
+      title = "Download Secure File | FileShare";
+    } else if (path.includes("/payment/")) {
+      title = "Upgrade Your File Options | FileShare";
+    } else if (path === "*") {
+      title = "Page Not Found | FileShare";
+    }
+
+    // Update document title
+    document.title = title;
+  }, [location]);
+
+  return null;
+};
+
+function App() {
   return (
     <Router>
       <AppContainer>
+        <TitleUpdater />
         <Header />
         <MainContent>
           <Routes>
@@ -44,6 +79,6 @@ const App = () => {
       </AppContainer>
     </Router>
   );
-};
+}
 
 export default App;

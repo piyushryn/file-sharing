@@ -94,7 +94,7 @@ const FeatureItem = styled.li`
   }
 `;
 
-const HomePage = () => {
+const HomePage: React.FC = () => {
   return (
     <Container>
       <Title>Secure File Sharing Made Easy</Title>

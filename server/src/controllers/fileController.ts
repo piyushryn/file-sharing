@@ -4,6 +4,9 @@ import mongoose from "mongoose";
 import FileModel, { IFile } from "../models/FileModel";
 import { generateUploadUrl, generateDownloadUrl } from "../utils/s3Config";
 
+// Helper function to generate request ID for tracking
+const generateRequestId = () => crypto.randomBytes(8).toString("hex");
+
 interface UploadRequestBody {
   fileName: string;
   fileType: string;
@@ -29,15 +32,28 @@ const getUploadUrl = async (
   req: Request<{}, {}, UploadRequestBody>,
   res: Response
 ): Promise<void> => {
+  const requestId = generateRequestId();
+  console.log(`[${requestId}] [getUploadUrl] Request received:`, {
+    body: req.body,
+    ip: req.ip,
+    userAgent: req.get("user-agent"),
+  });
+
   // Validate request body
   const { fileName, fileType, fileSize } = req.body;
 
   if (!fileName || !fileType) {
+    console.log(
+      `[${requestId}] [getUploadUrl] Validation failed: Missing filename or filetype`
+    );
     res.status(400).json({ message: "Filename and file type are required" });
     return;
   }
 
   if (!fileSize || isNaN(fileSize)) {
+    console.log(
+      `[${requestId}] [getUploadUrl] Validation failed: Invalid file size`
+    );
     res.status(400).json({ message: "Valid file size is required" });
     return;
   }
@@ -45,6 +61,7 @@ const getUploadUrl = async (
   try {
     // Convert fileSize from bytes to GB for validation
     const fileSizeGB = fileSize / (1024 * 1024 * 1024);
+    console.log(`[${requestId}] [getUploadUrl] File size in GB:`, fileSizeGB);
 
     // Check file size against the default limit
     const defaultFileSizeLimit = parseInt(
@@ -52,6 +69,9 @@ const getUploadUrl = async (
     ); // in GB
 
     if (fileSizeGB > defaultFileSizeLimit) {
+      console.log(
+        `[${requestId}] [getUploadUrl] File exceeds size limit of ${defaultFileSizeLimit}GB`
+      );
       res.status(400).json({
         message: `File size exceeds the ${defaultFileSizeLimit}GB limit. Please upgrade for larger uploads.`,
         requiresUpgrade: true,
@@ -59,7 +79,10 @@ const getUploadUrl = async (
       return;
     }
   } catch (error) {
-    console.error("Error validating file size:", error);
+    console.error(
+      `[${requestId}] [getUploadUrl] Error validating file size:`,
+      error
+    );
     res.status(400).json({ message: "Error validating file size" });
     return;
   }
@@ -69,8 +92,12 @@ const getUploadUrl = async (
   try {
     uniqueId = crypto.randomBytes(16).toString("hex");
     s3Key = `uploads/${uniqueId}-${fileName.replace(/\s+/g, "_")}`;
+    console.log(`[${requestId}] [getUploadUrl] Generated S3 key:`, s3Key);
   } catch (error) {
-    console.error("Error generating unique file key:", error);
+    console.error(
+      `[${requestId}] [getUploadUrl] Error generating unique file key:`,
+      error
+    );
     res
       .status(500)
       .json({ message: "Error generating unique file identifier" });
@@ -81,8 +108,15 @@ const getUploadUrl = async (
   let uploadUrl: string;
   try {
     uploadUrl = await generateUploadUrl(s3Key, fileType, 3600);
+    console.log(
+      `[${requestId}] [getUploadUrl] Generated upload URL for S3 (partial):`,
+      uploadUrl.substring(0, 60) + "..."
+    );
   } catch (error: any) {
-    console.error("Error generating S3 pre-signed URL:", error);
+    console.error(
+      `[${requestId}] [getUploadUrl] Error generating S3 pre-signed URL:`,
+      error
+    );
     res.status(500).json({
       message: "Error generating upload URL from S3",
       details: error.message,
@@ -101,6 +135,7 @@ const getUploadUrl = async (
   const expiresAt = new Date(
     Date.now() + defaultValidityHours * 60 * 60 * 1000
   );
+  console.log(`[${requestId}] [getUploadUrl] File will expire at:`, expiresAt);
 
   // Create file record in database
   let file: IFile;
@@ -118,8 +153,15 @@ const getUploadUrl = async (
     });
 
     await file.save();
+    console.log(
+      `[${requestId}] [getUploadUrl] File record created in DB with ID:`,
+      file._id
+    );
   } catch (error: any) {
-    console.error("Database error saving file record:", error);
+    console.error(
+      `[${requestId}] [getUploadUrl] Database error saving file record:`,
+      error
+    );
     res.status(500).json({
       message: "Error saving file information to database",
       details: error.message,
@@ -128,11 +170,16 @@ const getUploadUrl = async (
   }
 
   // Return successful response
-  res.status(200).json({
+  const response = {
     uploadUrl,
     fileId: file._id,
     expiresAt: expiresAt,
+  };
+  console.log(`[${requestId}] [getUploadUrl] Success response:`, {
+    fileId: file._id,
+    expiresAt,
   });
+  res.status(200).json(response);
 };
 
 /**
@@ -143,18 +190,37 @@ const confirmUpload = async (
   req: Request<{ fileId: string }, {}, ConfirmUploadRequestBody>,
   res: Response
 ): Promise<void> => {
+  const requestId = generateRequestId();
+  console.log(`[${requestId}] [confirmUpload] Request received:`, {
+    params: req.params,
+    body: req.body,
+    ip: req.ip,
+  });
+
   try {
     const { fileId } = req.params;
     const { email } = req.body;
 
+    console.log(
+      `[${requestId}] [confirmUpload] Looking up file with ID:`,
+      fileId
+    );
     const file = await FileModel.findById(fileId);
 
     if (!file) {
+      console.log(
+        `[${requestId}] [confirmUpload] File not found with ID:`,
+        fileId
+      );
       res.status(404).json({ message: "File not found" });
       return;
     }
 
     // Generate pre-signed download URL
+    console.log(
+      `[${requestId}] [confirmUpload] Generating download URL for file:`,
+      file.s3Key
+    );
     const downloadUrl = await generateDownloadUrl(
       file.s3Key,
       file.originalName,
@@ -165,17 +231,32 @@ const confirmUpload = async (
     file.downloadUrl = downloadUrl;
     if (email) {
       file.email = email;
+      console.log(
+        `[${requestId}] [confirmUpload] Associating email with file:`,
+        email
+      );
     }
 
     await file.save();
+    console.log(
+      `[${requestId}] [confirmUpload] File record updated with download URL`
+    );
 
-    res.status(200).json({
+    const response = {
       fileId: file._id,
       downloadUrl,
       expiresAt: file.expiresAt,
+    };
+    console.log(`[${requestId}] [confirmUpload] Success response:`, {
+      fileId: file._id,
+      expiresAt: file.expiresAt,
     });
+    res.status(200).json(response);
   } catch (error) {
-    console.error("Error confirming upload:", error);
+    console.error(
+      `[${requestId}] [confirmUpload] Error confirming upload:`,
+      error
+    );
     res.status(500).json({ message: "Error confirming upload" });
   }
 };
@@ -188,23 +269,45 @@ const getFileById = async (
   req: Request<{ fileId: string }>,
   res: Response
 ): Promise<void> => {
+  const requestId = generateRequestId();
+  console.log(`[${requestId}] [getFileById] Request received:`, {
+    params: req.params,
+    ip: req.ip,
+  });
+
   try {
     const { fileId } = req.params;
 
+    console.log(
+      `[${requestId}] [getFileById] Looking up file with ID:`,
+      fileId
+    );
     const file = await FileModel.findById(fileId);
 
     if (!file) {
+      console.log(
+        `[${requestId}] [getFileById] File not found with ID:`,
+        fileId
+      );
       res.status(404).json({ message: "File not found" });
       return;
     }
 
     // Check if file has expired
     if (file.expiresAt < new Date()) {
+      console.log(`[${requestId}] [getFileById] File has expired:`, {
+        fileId,
+        expiredAt: file.expiresAt,
+      });
       res.status(410).json({ message: "This file has expired" });
       return;
     }
 
     // Generate a fresh download URL
+    console.log(
+      `[${requestId}] [getFileById] Generating fresh download URL for file:`,
+      file.s3Key
+    );
     const downloadUrl = await generateDownloadUrl(
       file.s3Key,
       file.originalName,
@@ -213,8 +316,11 @@ const getFileById = async (
 
     file.downloadUrl = downloadUrl;
     await file.save();
+    console.log(
+      `[${requestId}] [getFileById] File record updated with fresh download URL`
+    );
 
-    res.status(200).json({
+    const response = {
       fileId: file._id,
       fileName: file.originalName,
       fileSize: file.size,
@@ -223,9 +329,20 @@ const getFileById = async (
       isPremium: file.isPremium,
       validityHours: file.validityHours,
       uploadedAt: file.uploadedAt,
+    };
+    console.log(`[${requestId}] [getFileById] Success response:`, {
+      fileId: file._id,
+      fileName: file.originalName,
+      fileSize: file.size,
+      expiresAt: file.expiresAt,
+      isPremium: file.isPremium,
     });
+    res.status(200).json(response);
   } catch (error) {
-    console.error("Error getting file details:", error);
+    console.error(
+      `[${requestId}] [getFileById] Error getting file details:`,
+      error
+    );
     res.status(500).json({ message: "Error getting file details" });
   }
 };
@@ -238,19 +355,35 @@ const updateFile = async (
   req: Request<{ fileId: string }, {}, UpdateFileRequestBody>,
   res: Response
 ): Promise<void> => {
+  const requestId = generateRequestId();
+  console.log(`[${requestId}] [updateFile] Request received:`, {
+    params: req.params,
+    body: req.body,
+    ip: req.ip,
+  });
+
   try {
     const { fileId } = req.params;
     const { maxSize, validityHours, isPremium, paymentId } = req.body;
 
+    console.log(`[${requestId}] [updateFile] Looking up file with ID:`, fileId);
     const file = await FileModel.findById(fileId);
 
     if (!file) {
+      console.log(
+        `[${requestId}] [updateFile] File not found with ID:`,
+        fileId
+      );
       res.status(404).json({ message: "File not found" });
       return;
     }
 
     // Update file attributes if provided
-    if (maxSize) file.maxSize = maxSize;
+    let updates: Record<string, any> = {};
+    if (maxSize) {
+      file.maxSize = maxSize;
+      updates.maxSize = maxSize;
+    }
     if (validityHours) {
       // Update expiry time based on new validity
       const newExpiryTime = new Date(
@@ -258,16 +391,30 @@ const updateFile = async (
       );
       file.validityHours = validityHours;
       file.expiresAt = newExpiryTime;
+      updates.validityHours = validityHours;
+      updates.expiresAt = newExpiryTime;
     }
-    if (isPremium !== undefined) file.isPremium = isPremium;
+    if (isPremium !== undefined) {
+      file.isPremium = isPremium;
+      updates.isPremium = isPremium;
+    }
     if (paymentId) {
       // Convert paymentId string to ObjectId before assigning
       file.paymentId = new mongoose.Types.ObjectId(paymentId);
+      updates.paymentId = paymentId;
     }
 
+    console.log(
+      `[${requestId}] [updateFile] Updating file with attributes:`,
+      updates
+    );
     await file.save();
 
     // Generate a fresh download URL with new expiry time
+    console.log(
+      `[${requestId}] [updateFile] Generating fresh download URL with new expiry:`,
+      file.validityHours
+    );
     const downloadUrl = await generateDownloadUrl(
       file.s3Key,
       file.originalName,
@@ -276,8 +423,11 @@ const updateFile = async (
 
     file.downloadUrl = downloadUrl;
     await file.save();
+    console.log(
+      `[${requestId}] [updateFile] File record updated with fresh download URL`
+    );
 
-    res.status(200).json({
+    const response = {
       fileId: file._id,
       fileName: file.originalName,
       fileSize: file.size,
@@ -286,9 +436,17 @@ const updateFile = async (
       expiresAt: file.expiresAt,
       downloadUrl: file.downloadUrl,
       isPremium: file.isPremium,
+    };
+    console.log(`[${requestId}] [updateFile] Success response:`, {
+      fileId: file._id,
+      maxSize: file.maxSize,
+      validityHours: file.validityHours,
+      expiresAt: file.expiresAt,
+      isPremium: file.isPremium,
     });
+    res.status(200).json(response);
   } catch (error) {
-    console.error("Error updating file:", error);
+    console.error(`[${requestId}] [updateFile] Error updating file:`, error);
     res.status(500).json({ message: "Error updating file" });
   }
 };
