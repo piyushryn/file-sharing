@@ -5,6 +5,7 @@ import {
   getFileById,
   updateFile,
   getFilesByUserId,
+  downloadFile,
 } from "../controllers/fileController";
 import {
   addUserDataToRequestIfSignedIn,
@@ -14,7 +15,6 @@ import {
 const router = express.Router();
 
 router.use(addUserDataToRequestIfSignedIn);
-
 // Routes for file operations
 router.post("/getUploadUrl", getUploadUrl);
 router.post("/confirmUpload/:fileId", confirmUpload);
@@ -24,5 +24,7 @@ router.get("/my-uploads", getFilesByUserId); // Get files by user ID
 
 router.get("/:fileId", getFileById);
 router.patch("/:fileId", updateFile);
+
+router.get("/download/:fileId", downloadFile);
 
 export default router;

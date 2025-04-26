@@ -28,6 +28,38 @@ interface UpdateFileRequestBody {
  * Generate a pre-signed URL for file upload
  * @route POST /api/files/getUploadUrl
  */
+const downloadFile = async (
+  req: Request<
+    {
+      fileId: string;
+    },
+    {},
+    {}
+  >,
+  res: Response
+): Promise<void> => {
+  const file = await FileModel.findById(req.params.fileId);
+  if (!file) {
+    res.status(404).json({ message: "File not found" });
+    return;
+  }
+  if (file.expiresAt < new Date()) {
+    res.status(410).json({ message: "This file has expired" });
+    return;
+  }
+  if (!file.downloadUrl) {
+    res.status(400).json({ message: "File is not ready for download" });
+    return;
+  }
+
+  res.redirect(file.downloadUrl);
+  return;
+};
+
+/**
+ * Generate a pre-signed URL for file upload
+ * @route POST /api/files/getUploadUrl
+ */
 const getUploadUrl = async (
   req: Request<{}, {}, UploadRequestBody>,
   res: Response
@@ -325,7 +357,6 @@ const getFileById = async (
       fileId: file._id,
       fileName: file.originalName,
       fileSize: file.size,
-      downloadUrl: file.downloadUrl,
       expiresAt: file.expiresAt,
       isPremium: file.isPremium,
       validityHours: file.validityHours,
@@ -435,7 +466,6 @@ const updateFile = async (
       maxSize: file.maxSize,
       validityHours: file.validityHours,
       expiresAt: file.expiresAt,
-      downloadUrl: file.downloadUrl,
       isPremium: file.isPremium,
     };
     console.log(`[${requestId}] [updateFile] Success response:`, {
@@ -518,4 +548,5 @@ export {
   getFileById,
   updateFile,
   getFilesByUserId,
+  downloadFile,
 };
