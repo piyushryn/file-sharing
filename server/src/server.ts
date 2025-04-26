@@ -1,12 +1,12 @@
 import express, { Request, Response, NextFunction } from "express";
 import mongoose from "mongoose";
 import cors from "cors";
-import dotenv from "dotenv";
+// import dotenv from "dotenv";
 import passport from "passport";
 import session from "express-session";
 
 // Load environment variables
-dotenv.config();
+// dotenv.config();
 
 // Import middleware
 import rawBodyMiddleware from "./middlewares/rawBodyMiddleware";
@@ -94,7 +94,7 @@ app.use(
 );
 
 // Start server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+const PORT = +process.env.PORT!;
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });

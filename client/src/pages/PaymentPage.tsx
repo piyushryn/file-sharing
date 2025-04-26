@@ -1,27 +1,23 @@
-import React, { useState, useEffect, FormEvent, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { fileService, paymentService } from "../services/api";
-import { loadStripe, Stripe, StripeElementsOptions } from "@stripe/stripe-js";
-import {
-  Elements,
-  PaymentElement,
-  useStripe,
-  useElements,
-} from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
+
+import { FileDetails as FD } from "../services/api";
+import { Elements } from "@stripe/react-stripe-js";
 import { PricingTier as PTier, RazorpayResponse } from "../types";
 
 // Define interfaces for data types
-interface FileDetails {
-  fileId: string;
-  fileName: string;
-  fileSize: number;
-  downloadUrl: string;
-  expiresAt: string;
-  isPremium: boolean;
-  validityHours: number;
-  uploadedAt: string;
-  email?: string;
+interface FileDetails extends FD {
+  // id: string;
+  // fileName: string;
+  // fileSize: number;
+  // expiresAt: string;
+  // isPremium: boolean;
+  // validityHours: number;
+  // uploadedAt: string;
+  // email?: string;
 }
 
 interface StripePaymentFormProps {

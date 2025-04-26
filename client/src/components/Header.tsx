@@ -124,9 +124,12 @@ const Header = () => {
           FileShare
         </Logo>
         <NavLinks>
-          <NavLink to="/">Home</NavLink>
+          {isAuthenticated ? (
+            <NavLink to="/profile">Profile</NavLink>
+          ) : (
+            <NavLink to="/">Home</NavLink>
+          )}
           <NavLink to="/upload">Upload</NavLink>
-
           {isAuthenticated ? (
             <UserMenu>
               <NavLink to={"#"} onClick={handleLogout}>

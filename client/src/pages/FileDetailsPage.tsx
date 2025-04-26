@@ -3,6 +3,8 @@ import { useParams, Link } from "react-router-dom";
 import styled from "styled-components";
 import { FileDetails, fileService, paymentService } from "../services/api";
 import { PricingTier as PTier } from "../types";
+import { getDownloadUrl } from "../utils/GetDownloadUrl";
+import { formatRemainingTime } from "../utils/FormatTime";
 
 interface RouteParams {
   fileId: string;
@@ -234,27 +236,6 @@ const formatFileSize = (bytes: number): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 };
 
-// Helper function to format remaining time
-const formatRemainingTime = (expiryDate: string): string => {
-  const now = new Date();
-  const expiry = new Date(expiryDate);
-  const diffMs = expiry.getTime() - now.getTime();
-
-  if (diffMs <= 0) {
-    return "Expired";
-  }
-
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-
-  if (diffHours > 24) {
-    const days = Math.floor(diffHours / 24);
-    return `${days} day${days !== 1 ? "s" : ""} ${diffHours % 24} hr`;
-  }
-
-  return `${diffHours} hr ${diffMinutes} min`;
-};
-
 const FileDetailsPage: React.FC = () => {
   // @ts-ignore need to ignore this for now
   const { fileId } = useParams<RouteParams>();
@@ -377,7 +358,7 @@ const FileDetailsPage: React.FC = () => {
         </FileInfo>
 
         <DownloadButton
-          href={fileDetails!.downloadUrl}
+          href={getDownloadUrl(fileId!)}
           download={fileDetails!.fileName}
         >
           Download File

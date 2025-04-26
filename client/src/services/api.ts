@@ -46,19 +46,18 @@ export interface FileUploadUrlResponse {
 
 interface FileConfirmResponse {
   fileId: string;
-  downloadUrl: string;
   expiresAt: string;
 }
 
 export interface FileDetails {
-  fileId: string;
+  id: string;
   fileName: string;
   fileSize: number;
-  downloadUrl: string;
   expiresAt: string;
   isPremium: boolean;
   validityHours: number;
   uploadedAt: string;
+  email: string | null;
 }
 
 interface FileUpdateData {

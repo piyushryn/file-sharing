@@ -3,7 +3,6 @@ export interface FileInfo {
   fileId: string;
   fileName: string;
   fileSize: number;
-  downloadUrl: string;
   expiresAt: string;
   uploadedAt: string;
   isPremium: boolean;

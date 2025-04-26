@@ -4,13 +4,13 @@ import { useAuth } from "../contexts/AuthContext";
 import { API } from "../services/api";
 import { useModal } from "../contexts/ModalContext";
 import { useNavigate } from "react-router-dom";
+import { formatRemainingTime } from "../utils/FormatTime";
 
 // Types
 interface UserFile {
   id: string;
   name: string;
   size: number;
-  downloadUrl: string;
   isPremium: boolean;
   expiresAt: string;
   uploadedAt: string;
@@ -173,27 +173,6 @@ const formatDate = (dateString: string): string => {
   });
 };
 
-// Calculate time remaining helper
-const getTimeRemaining = (expiryDate: string): string => {
-  const now = new Date();
-  const expiry = new Date(expiryDate);
-  const diffMs = expiry.getTime() - now.getTime();
-
-  if (diffMs <= 0) {
-    return "Expired";
-  }
-
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-
-  if (diffHours > 24) {
-    const days = Math.floor(diffHours / 24);
-    return `${days} day${days !== 1 ? "s" : ""} ${diffHours % 24} hr`;
-  }
-
-  return `${diffHours} hr ${diffMinutes} min`;
-};
-
 // Main profile page component
 const ProfilePage: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
@@ -280,7 +259,9 @@ const ProfilePage: React.FC = () => {
                   </FileName>
                   <FileInfo>
                     <span>{formatFileSize(file.size)}</span>
-                    <span>Expires in: {getTimeRemaining(file.expiresAt)}</span>
+                    <span>
+                      Expires in: {formatRemainingTime(file.expiresAt)}
+                    </span>
                     <span>Uploaded: {formatDate(file.uploadedAt)}</span>
                   </FileInfo>
                 </FileDetails>
