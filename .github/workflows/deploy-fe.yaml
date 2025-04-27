@@ -10,7 +10,6 @@ on:
       - opened
 env:
   REACT_APP_API_URL: "https://file-sharing-pu9d.onrender.com/api"
-  "process.env.REACT_APP_API_URL": "https://file-sharing-pu9d.onrender.com/api"
   CI: ""
 
 jobs:
@@ -33,11 +32,16 @@ jobs:
           cd client
           npm install
 
+      - name: Set environment variables from secrets
+        run: |
+          echo "REACT_APP_STRIPE_PUBLIC_KEY=${{ secrets.REACT_APP_API_URL }}" >> $GITHUB_ENV
+
       - name: Build React app
         run: |
           cd client
           npm run build
-
+        env:
+          REACT_APP_API_URL: ${{ env.REACT_APP_API_URL }}
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
