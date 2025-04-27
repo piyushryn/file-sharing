@@ -10,6 +10,7 @@ on:
       - opened
 env:
   REACT_APP_API_URL: "https://file-sharing-pu9d.onrender.com/api"
+  "process.env.REACT_APP_API_URL": "https://file-sharing-pu9d.onrender.com/api"
   CI: ""
 
 jobs:
