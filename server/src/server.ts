@@ -28,10 +28,12 @@ interface ErrorWithStack extends Error {
   stack?: string;
 }
 
+const whitelistedOrigins = process.env.WHITELISTED_ORIGINS!.split(",") || [];
+
 // Middleware
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: ["http://localhost:3000", ...whitelistedOrigins],
     methods: ["GET", "POST", "PATCH", "DELETE", "PUT"],
     credentials: true,
   })
