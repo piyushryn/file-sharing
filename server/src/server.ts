@@ -28,7 +28,7 @@ interface ErrorWithStack extends Error {
   stack?: string;
 }
 
-const whitelistedOrigins = process.env.WHITELISTED_ORIGINS!.split(",") || [];
+const whitelistedOrigins = process.env.WHITELISTED_ORIGINS?.split(",") || [];
 
 // Middleware
 app.use(
