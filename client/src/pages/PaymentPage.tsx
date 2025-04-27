@@ -20,12 +20,12 @@ interface FileDetails extends FD {
   // email?: string;
 }
 
-interface StripePaymentFormProps {
-  fileId: string;
-  selectedTier: PTier;
-  onPaymentSuccess: () => void;
-  onBack: () => void;
-}
+// interface StripePaymentFormProps {
+//   fileId: string;
+//   selectedTier: PTier;
+//   onPaymentSuccess: () => void;
+//   onBack: () => void;
+// }
 
 interface RouteParams {
   fileId: string;
@@ -169,30 +169,30 @@ const RazorpayButton = styled(PaymentButton)`
   }
 `;
 
-const StripeButton = styled(PaymentButton)`
-  background-color: #5433ff;
-  color: white;
+// const StripeButton = styled(PaymentButton)`
+//   background-color: #5433ff;
+//   color: white;
 
-  &:hover:not(:disabled) {
-    background-color: #4525e6;
-  }
-`;
+//   &:hover:not(:disabled) {
+//     background-color: #4525e6;
+//   }
+// `;
 
-const BackButton = styled.button`
-  background-color: #95a5a6;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 4px;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  margin-top: 1rem;
+// const BackButton = styled.button`
+//   background-color: #95a5a6;
+//   color: white;
+//   border: none;
+//   padding: 0.75rem 1.5rem;
+//   border-radius: 4px;
+//   font-size: 1rem;
+//   cursor: pointer;
+//   transition: background-color 0.2s;
+//   margin-top: 1rem;
 
-  &:hover {
-    background-color: #7f8c8d;
-  }
-`;
+//   &:hover {
+//     background-color: #7f8c8d;
+//   }
+// `;
 
 const PaymentMethodTitle = styled.h3`
   margin-bottom: 1rem;

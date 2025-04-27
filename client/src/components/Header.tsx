@@ -72,27 +72,27 @@ const UserMenu = styled.div`
   align-items: center;
 `;
 
-const UserButton = styled.button`
-  background: none;
-  border: none;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-  color: white;
-  text-decoration: none;
-  font-weight: 500;
-  padding: 0.5rem;
-  border-radius: 4px;
-  transition: background-color 0.2s;
+// const UserButton = styled.button`
+//   background: none;
+//   border: none;
+//   display: flex;
+//   align-items: center;
+//   gap: 0.5rem;
+//   cursor: pointer;
+//   color: white;
+//   text-decoration: none;
+//   font-weight: 500;
+//   padding: 0.5rem;
+//   border-radius: 4px;
+//   transition: background-color 0.2s;
 
-  &:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-  }
-`;
+//   &:hover {
+//     background-color: rgba(255, 255, 255, 0.1);
+//   }
+// `;
 
 const Header = () => {
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
   const { openModal } = useModal();
 
   const handleLogout = () => {

@@ -10,6 +10,7 @@ on:
       - opened
 env:
   REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL }}
+  CI: ""
 
 jobs:
   build-and-deploy:
