@@ -11,6 +11,8 @@ import {
 import crypto from "crypto";
 import getUser from "../utils/auth/getUser";
 
+// import { sendPaymentConfirmationEmail } from "../utils/emailService";
+
 // Helper function to generate request ID for tracking
 const generateRequestId = () => crypto.randomBytes(8).toString("hex");
 
@@ -242,22 +244,51 @@ const verifyRazorpayPayment = async (
         res.status(401).json({ message: "Unauthorized" });
         return;
       }
+
       // Update file attributes
-      const updateResult = await FileModel.findByIdAndUpdate(payment.fileId, {
-        maxSize: pricingTier.fileSizeLimit,
-        validityHours: pricingTier.validityInHours,
-        isPremium: true,
-        userId: user?.id,
-        paymentId: payment._id,
-        // Update expiry time based on new validity
-        expiresAt: new Date(
-          Date.now() + pricingTier.validityInHours * 60 * 60 * 1000
-        ),
-      });
+      const file = await FileModel.findByIdAndUpdate(
+        payment.fileId,
+        {
+          maxSize: pricingTier.fileSizeLimit,
+          validityHours: pricingTier.validityInHours,
+          isPremium: true,
+          userId: user?.id,
+          paymentId: payment._id,
+          // Update expiry time based on new validity
+          expiresAt: new Date(
+            Date.now() + pricingTier.validityInHours * 60 * 60 * 1000
+          ),
+        },
+        { new: true }
+      );
+
       console.log(
         `[${requestId}] [verifyRazorpayPayment] File update result:`,
-        !!updateResult
+        !!file
       );
+
+      // // Send payment confirmation email
+      // if (user.email && file) {
+      //   try {
+      //     await sendPaymentConfirmationEmail(
+      //       user.email,
+      //       payment.amount,
+      //       payment.currency,
+      //       pricingTier.name,
+      //       razorpayPaymentId
+      //     );
+      //     console.log(
+      //       `[${requestId}] [verifyRazorpayPayment] Payment confirmation email sent to:`,
+      //       user.email
+      //     );
+      //   } catch (emailError) {
+      //     console.error(
+      //       `[${requestId}] [verifyRazorpayPayment] Error sending payment confirmation email:`,
+      //       emailError
+      //     );
+      //     // Continue anyway since payment was successful
+      //   }
+      // }
     }
 
     const response = {

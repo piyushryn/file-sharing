@@ -3,6 +3,8 @@ import crypto from "crypto";
 import mongoose from "mongoose";
 import FileModel, { IFile } from "../models/FileModel";
 import { generateUploadUrl, generateDownloadUrl } from "../utils/s3Config";
+import { sendFileSharedEmail } from "../utils/emailService";
+import { getShareUrl } from "../utils/getShareUrl";
 
 // Helper function to generate request ID for tracking
 const generateRequestId = () => crypto.randomBytes(8).toString("hex");
@@ -271,6 +273,14 @@ const confirmUpload = async (
     }
 
     await file.save();
+    if (file.email)
+      sendFileSharedEmail(
+        file.email,
+        file.originalName,
+        getShareUrl(file.id),
+        file.expiresAt,
+        req.user?.name
+      );
     console.log(
       `[${requestId}] [confirmUpload] File record updated with download URL`
     );
